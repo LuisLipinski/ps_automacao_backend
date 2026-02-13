@@ -1,0 +1,30 @@
+{
+  "name": "ps_automacao_backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "smoke": "playwright test tests/api/**/smoke",
+    "regression": "playwright test tests/api/**/regression",
+    "empresa": "playwright test --project=ps_empresa",
+    "empresa:smoke": "playwright test tests/api/empresa/smoke --project=empresa",
+    "empresa:regression": "playwright test tests/api/empresa/regression --project=empresa",
+    "contrato": "playwright test --project=contrato",
+    "contrato:smoke": "playwright test tests/api/contrato/smoke --project=contrato",
+    "contrato:regression": "playwright test tests/api/contrato/regression --project=contrato",
+    "report": "playwright show-report"
+  },
+  "keywords": [],
+  "author": "Luis Henrique Lipinski",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.2.3"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.3.0",
+    "cpf-cnpj-validator": "^1.0.3"
+  }
+}
