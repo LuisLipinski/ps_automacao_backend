@@ -4,16 +4,14 @@ import { defineConfig, devices } from '@playwright/test';
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  /* Pasta onde o playwright procura os testes */
-  testDir: './tests',
   /* Roda os testes em paralelo */
   fullyParallel: true,
   /* falha CI se você esquecer test.only */
@@ -25,6 +23,14 @@ export default defineConfig({
   /* gera os reportes https://playwright.dev/docs/test-reporters */
   reporter: 'html',
 
+    expect: {
+    timeout: 10000
+  },
+
+  use: {
+  trace: 'retain-on-failure'
+},
+
   /* Configuração dos projetos de API */
   projects: [
   /* Cofiguração para o MS ps_empresa */
@@ -32,24 +38,26 @@ export default defineConfig({
       name: 'ps_empresa',
       testDir: './tests/api/ps_empresa',
       use: {
-        baseURL: 'http://localhost:8081',
+        baseURL: process.env.PS_EMPRESA_URL,
         extraHTTPHeaders: {
           'Content-Type': 'application/json'
         }
-      }
+      },
+      timeout: 120000
     },
     /* Cofiguração para o MS ps_contrato */
     {
       name: 'ps_contrato',
       testDir: './tests/api/ps_contrato',
       use: {
-        baseURL: 'http://localhost:8082',
+        baseURL: process.env.PS_CONTRATO_URL,
         extraHTTPHeaders: {
           'Content-Type': 'application/json'
         }
       }
     }
-  ]
+  ],
+
   /* compartilha as configurações para todas as plataforma abaixo. See https://playwright.dev/docs/api/class-testoptions. */
   // use: {
   //   /* Base URL usado quando chamado pelo `await page.goto('')`. */

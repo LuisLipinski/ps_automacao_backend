@@ -8,7 +8,7 @@ export function novaEmpresa() {
         documentNumber: cnpj.generate(),
         razaoSocial: faker.company.name().replace(/[^\wÀ-ÿ0-9 ]/g, ''),
         nomeFantasia: faker.company.name().replace(/[^\wÀ-ÿ0-9 ]/g, ''),
-        nomeTitular: faker.person.fullName().replace(/[^\wÀ-ÿ0-9 ]/g, ''),
+        nomeTitular: gerarNomeTitularValido(),
         telefone: '11999999999',
         email: faker.internet.email(),
         rua: 'Rua A',
@@ -18,4 +18,19 @@ export function novaEmpresa() {
         estado: 'PR',
         cep: '01010100'
     };
+}
+
+function gerarNomeTitularValido(): string {
+  const nomes = [
+    'Carlos Eduardo',
+    'Mariana Silva',
+    'Fernanda Oliveira',
+    'Ricardo Pereira',
+    'Gabriel Martins',
+    'Juliana Ferreira',
+    'Lucas Almeida',
+    'Patricia Gomes'
+  ];
+
+  return nomes[Math.floor(Math.random() * nomes.length)];
 }
