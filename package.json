@@ -15,8 +15,8 @@
     "empresa:smoke:render": "cross-env PS_EMPRESA_URL=https://ps-empresa.onrender.com playwright test tests/api/ps_empresa/smoke --project=ps_empresa",
 
     "empresa:regression": "playwright test tests/api/empresa/regression --project=empresa",
-    "empresa:regression:local": "cross-env PS_EMPRESA_URL=http://localhost:8081 playwright test tests/api/empresa/regression --project=ps_empresa",
-    "empresa:regression:render": "cross-env PS_EMPRESA_URL=https://ps-empresa.onrender.com playwright test tests/api/empresa/regression --project=ps_empresa",
+    "empresa:regression:local": "cross-env PS_EMPRESA_URL=http://localhost:8081 playwright test tests/api/ps_empresa/regression --project=ps_empresa",
+    "empresa:regression:render": "cross-env PS_EMPRESA_URL=https://ps-empresa.onrender.com playwright test tests/api/ps_empresa/regression --project=ps_empresa",
 
     "contrato": "playwright test --project=contrato",
     "contrato:smoke": "playwright test tests/api/contrato/smoke --project=contrato",
