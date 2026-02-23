@@ -1,8 +1,10 @@
-import { novaEmpresa } from './ps_empresa.payload';
+import { novaEmpresa, EmpresaPayload } from './ps_empresa.payload';
 import { ApiClient } from '../../../shared/api.client';
 
-export async function criarEmpresa(api: ApiClient) {
-  const payload = novaEmpresa();
+export async function criarEmpresa(api: ApiClient,
+    overrides: Partial<EmpresaPayload> = {}
+): Promise<EmpresaCriada> {
+  const payload = novaEmpresa(overrides);
 
   const res = await api.post('/empresas/createEmpresas', payload);
 
@@ -22,9 +24,24 @@ export async function criarEmpresa(api: ApiClient) {
   };
 }
 
+export type EmpresaResponse = {
+  id: string;
+  documentNumber: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  telefone: string;
+  email: string;
+  nomeTitular: string;
+  cep: string;
+  cidade: string;
+  estado: string;
+  endereco: string;
+  status: 'ATIVO' | 'INATIVO' | 'AGUARDANDO_PAGAMENTO';
+};
+
 
 export type EmpresaCriada = {
-  payload: any;
-  response: any;
+  payload: EmpresaPayload;
+  response: EmpresaResponse;
 };
 
