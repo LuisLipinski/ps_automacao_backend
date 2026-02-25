@@ -54,7 +54,6 @@ test.describe('Cenários positivo', () => {
         expect(empresaPersistida.id).toBe(body.id);
         expect(empresaPersistida.documentNumber).toBe(payload.documentNumber);
         expect(empresaPersistida.status).toBe('AGUARDANDO_PAGAMENTO');
-  
     })
 
     test('Deve salvar status inicial como AGUARDANDO_PAGAMENTO', async ({ api }) => {
@@ -89,13 +88,57 @@ test.describe('Cenários positivo', () => {
 
         expect(body.endereco). toBe('Rua das Oliveiras, 154 - Ap32 bloco 03, Centro')
     })
+
+    test('Deve montar o campo endereco corretamente sem complemento (rua + número + bairro', async ({ api }) => {
+        const payload = novaEmpresa({
+            rua: 'Rua das Oliveiras',
+            numero: '154',
+            complemento: null,
+            bairro: 'Centro'
+        });
+
+        const response = await api.post('/empresas/createEmpresas', payload);
+        const body = await response.json();
+
+        expect(body.endereco).toBe('Rua das Oliveiras, 154, Centro')
+    })
+
+    test('Deve retorna EmpresaResponseDTO corretamente', async ({ api }) => {
+        const payload = novaEmpresa();
+
+        const res = await api.post('/empresas/createEmpresas', payload);
+
+        expect(res.status()).toBe(201);
+        const body = await res.json();
+        const expectedFields = [
+            'id',
+            'documentNumber',
+            'razaoSocial',
+            'nomeFantasia',
+            'telefone',
+            'email',
+            'nomeTitular',
+            'cep',
+            'cidade',
+            'estado',
+            'endereco',
+            'status'
+        ];
+
+        for (const field of expectedFields) {
+            expect(body).toHaveProperty(field);
+        }
+
+        expect(Object.keys(body).sort()).toEqual(expectedFields.sort());
+
+    })
+
+    
+
 })
 
 
 /* 
-
-
-Deve criar dataCriacao automaticamente
 
 Deve retornar EmpresaResponseDTO corretamente */
 
@@ -112,6 +155,8 @@ test.describe('Cenários negativo', () => {
         const body = await res.json();
         expect(JSON.stringify(body)).toContain('CNPJ');
     })
+
+
 })
 
 //validação de contrato implicito
