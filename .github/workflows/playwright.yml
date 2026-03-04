@@ -28,7 +28,7 @@ jobs:
       - name: Rodar Smoke Tests no ambiente de teste
         env:
           PS_EMPRESA_URL: https://ps-empresa.onrender.com
-        run: npm run playwright test --project=ps_empresa
+        run: npm run test
 
       - name: Salvar relatório HTML
         if: always()
