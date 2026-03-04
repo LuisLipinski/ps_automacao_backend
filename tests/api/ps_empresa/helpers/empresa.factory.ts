@@ -36,7 +36,7 @@ export type EmpresaResponse = {
   cidade: string;
   estado: string;
   endereco: string;
-  status: 'ATIVO' | 'INATIVO' | 'AGUARDANDO_PAGAMENTO';
+  status: 'ATIVO' | 'INATIVO' | 'AGUARDANDO_CONTRATO';
 };
 
 

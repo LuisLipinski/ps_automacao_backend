@@ -15,6 +15,10 @@ export class ApiClient {
     return this.request.put(url, { data, headers: { 'Content-Type': 'application/json' } });
   }
 
+  async patch(url: string, data?: any): Promise<APIResponse> {
+    return this.request.patch(url, { data, headers: { 'Content-Type': 'application/json' } });
+  }
+
   async delete(url: string): Promise<APIResponse> {
     return this.request.delete(url);
   }
