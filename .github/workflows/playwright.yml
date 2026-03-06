@@ -25,10 +25,22 @@ jobs:
       - name: Instalar Playwright
         run: npx playwright install
 
-      - name: Rodar Smoke Tests no ambiente de teste
+      - name: Rodar Smoke Tests e segurança do PS_Empresa
         env:
           PS_EMPRESA_URL: https://ps-empresa.onrender.com
-        run: npm run test
+        run: npm run empresa:smoke-security:render
+
+      - name: Salvar relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+
+      - name: Rodar Teste regressivo do PS_Empresa
+        env:
+          PS_EMPRESA_URL: https://ps-empresa.onrender.com
+        run: npm run empresa:regression:render
 
       - name: Salvar relatório HTML
         if: always()
