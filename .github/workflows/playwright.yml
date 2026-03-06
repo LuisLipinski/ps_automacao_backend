@@ -34,7 +34,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-smoke-security-ps_empresa
           path: playwright-report
 
       - name: Rodar Teste regressivo do PS_Empresa
@@ -46,5 +46,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-regression-ps_empresa
           path: playwright-report
