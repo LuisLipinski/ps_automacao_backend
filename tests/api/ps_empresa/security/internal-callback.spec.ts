@@ -38,7 +38,7 @@ test.describe('@security Internal Callback', () => {
 
 
     const internalApi = await playwrightRequest.newContext({
-        baseURL: process.env.BASE_URL ?? 'http://localhost:8081',
+        baseURL: process.env.PS_EMPRESA_URL ?? 'http://localhost:8081',
         extraHTTPHeaders: {
         'X-Internal-Key': 'mypetadmin-secret',
         'Content-Type': 'application/json'
