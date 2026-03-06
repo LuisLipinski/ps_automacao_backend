@@ -91,7 +91,6 @@ test.describe('@core Busca de empresa - Regressivo', () => {
         test('Buscar empresa com ID inexistente deve retornar 404', async ({ api }) => {
             const res = await api.get('/empresas/buscaEmpresas/f385b59b-fda1-4dcf-ad1a-8df0cd008d15');
             const body = await res.json();
-            console.log(body);
             expect(res.status()).toBe(404);
         });
         test('Filtro sem resultados deve retornar lista vazia', async ({ api }) => {

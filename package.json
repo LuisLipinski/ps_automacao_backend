@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test",
+    "test": "cross-env PS_EMPRESA_URL=https://ps-empresa.onrender.com playwright test",
+    "test:local": "cross-env PS_EMPRESA_URL=http://localhost:8081 playwright test",
     "smoke": "playwright test tests/api/**/smoke",
     "regression": "playwright test tests/api/**/regression",
     "empresa": "playwright test --project=ps_empresa",
