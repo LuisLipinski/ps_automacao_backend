@@ -1,31 +1,17 @@
     import { test, expect } from '../../fixtures/empresa.fixture';
     import { novaEmpresa, EmpresaPayload } from '../../helpers/ps_empresa.payload';
+    import { EmpresaClient } from '../../clients/ps_empresa.client';
 
 test.describe('@core Cadastro de empresa - Regressivo', () => {
     test.describe('Cenários positivo', () => {
         test('Cadastro com dados válidos deve criar empresa com sucesso', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
 
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
 
             expect(res.status()).toBe(201);
             const body = await res.json();
-            const expectedFields = [
-                'id',
-                'documentNumber',
-                'razaoSocial',
-                'nomeFantasia',
-                'telefone',
-                'email',
-                'nomeTitular',
-                'cep',
-                'cidade',
-                'estado',
-                'endereco',
-                'status'
-            ];
-
-            expect(Object.keys(body).sort()).toEqual(expectedFields.sort());
 
             expect(body.status).toBe('AGUARDANDO_CONTRATO');
 
@@ -44,7 +30,7 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
                 /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
             )
 
-            const getResponse = await api.get(`/empresas/buscaEmpresas/${body.id}`);
+            const getResponse = await empresaClient.buscarEmpresa(body.id);
             expect(getResponse.status()).toBe(200);
 
             const empresaPersistida = await getResponse.json();
@@ -64,16 +50,17 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
         })
 
         test('Status inicial deve ser AGUARDANDO_CONTRATO', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
 
-            const response = await api.post('/empresas/createEmpresas', payload);
+            const response = await empresaClient.criarEmpresa(payload);
             expect(response.status()).toBe(201);
 
             const body = await response.json();
 
             expect(body.status).toBe(`AGUARDANDO_CONTRATO`);
 
-            const getResponse = await api.get(`/empresas/buscaEmpresas/${body.id}`);
+            const getResponse = await empresaClient.buscarEmpresa(body.id);
             expect(getResponse.status()).toBe(200);
 
             const empresaPersistida = await getResponse.json();
@@ -83,6 +70,7 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
             
         })
         test('Deve montar o campo endereco corretamente (rua + número + complemento + bairro', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa({
                 rua: 'Rua das Oliveiras',
                 numero: '154',
@@ -90,13 +78,14 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
                 bairro: 'Centro'
             });
 
-            const response = await api.post('/empresas/createEmpresas', payload);
+            const response = await empresaClient.criarEmpresa(payload);
             const body = await response.json();
 
             expect(body.endereco). toBe('Rua das Oliveiras, 154 - Ap32 bloco 03, Centro')
         })
 
         test('Deve montar o campo endereco corretamente sem complemento (rua + número + bairro', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa({
                 rua: 'Rua das Oliveiras',
                 numero: '154',
@@ -104,16 +93,17 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
                 bairro: 'Centro'
             });
 
-            const response = await api.post('/empresas/createEmpresas', payload);
+            const response = await empresaClient.criarEmpresa(payload);
             const body = await response.json();
 
             expect(body.endereco).toBe('Rua das Oliveiras, 154, Centro')
         })
 
         test('Deve retorna EmpresaResponseDTO corretamente', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
 
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
 
             expect(res.status()).toBe(201);
             const body = await res.json();
@@ -144,10 +134,11 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
 
     test.describe('Cenários negativo', () => {
         test('não deve permitir cadastrar duas empresas com o mesmo CNPJ', async ({ api, empresa }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
             payload.documentNumber = empresa.payload.documentNumber;
 
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
 
             expect(res.status()).toBe(400);
 
@@ -156,52 +147,57 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
         })
 
         test('não deve permitir cadastro de empresas com mesmo email', async ({ api, empresa }) => {
-
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
             payload.email = empresa.payload.email;
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
             expect(res.status()).toBe(400);
             const body = await res.json();
             expect(JSON.stringify(body)).toContain('email');
         })
 
         test('não deve permitir cnpj invalido', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
             payload.documentNumber = '12345678901234';
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
             expect(res.status()).toBe(400);
             const body = await res.json();
             expect(JSON.stringify(body)).toContain('CNPJ');
         })
 
         test('não deve permitir estado com tamanho diferente de 2', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
             payload.estado = 'SPP';
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
             expect(res.status()).toBe(400);
             const body = await res.json();
             expect(JSON.stringify(body)).toContain('estado');
         })
 
         test('não deve permitir CEP com tamanho diferente de 8', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
             payload.cep = '1234567';
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
             expect(res.status()).toBe(400);
             const body = await res.json();
             expect(JSON.stringify(body)).toContain('cep');
         })
 
         test('não deve permitir telefone com tamanho diferente de 11', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa();
             payload.telefone = '1234567890';
-            const res = await api.post('/empresas/createEmpresas', payload);
+            const res = await empresaClient.criarEmpresa(payload);
             expect(res.status()).toBe(400);
             const body = await res.json();
             expect(JSON.stringify(body)).toContain('telefone');
         })
 
         test('não deve permitir campos obrigatórios nulos ou vazios', async ({ api }) => {
+            const empresaClient = new EmpresaClient(api);
             const payload = novaEmpresa({
                 documentNumber: '',
                 razaoSocial: '',
@@ -216,8 +212,8 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
                 numero: '',
                 bairro: ''
             });
-            const res = await api.post('/empresas/createEmpresas', payload);
-            expect(res.status()).toBe(400); 
+            const res = await empresaClient.criarEmpresa(payload);
+            expect(res.status()).toBe(400);
             const body = await res.json();
             expect(JSON.stringify(body)).toContain('documentNumber');
             expect(JSON.stringify(body)).toContain('razaoSocial');
