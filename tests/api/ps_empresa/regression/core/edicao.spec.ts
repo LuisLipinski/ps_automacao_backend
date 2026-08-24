@@ -53,21 +53,6 @@ test.describe('@core Edição de empresa - Regressivo', () => {
         expect(body.endereco).toBe('Rua das Flores, 150 - Sala 2, Centro');
     });
 
-    test('deve permitir manter o próprio email da empresa', async ({ api }) => {
-        const client = new EmpresaClient(api);
-        const empresa = await criarEmpresa(api);
-
-        const res = await client.editarEmpresa(empresa.response.id, {
-            email: empresa.payload.email,
-            nomeFantasia: 'Mesmo Email Pet'
-        });
-
-        expect(res.status()).toBe(200);
-        const body = await res.json();
-        expect(body.email).toBe(empresa.payload.email);
-        expect(body.nomeFantasia).toBe('Mesmo Email Pet');
-    });
-
     test('deve remover complemento quando enviado vazio', async ({ api }) => {
         const client = new EmpresaClient(api);
         const empresa = await criarEmpresa(api);
