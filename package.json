@@ -1,6 +1,6 @@
 {
   "name": "ps_automacao_backend",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Automação de API e futura UI/E2E do My Pet Admin com Playwright",
   "scripts": {
     "test": "playwright test",
