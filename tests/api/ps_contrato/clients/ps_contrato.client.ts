@@ -11,8 +11,16 @@ export class ContratoClient {
     return { 'X-Internal-Key': internalKey };
   }
 
-  async criarContrato(empresaId: string) {
-    return this.api.post('/contratos', { empresaId }, this.headers());
+  async criarContrato(empresaId: string, onboardingId: string) {
+    return this.api.post('/contratos', { empresaId, onboardingId }, this.headers());
+  }
+
+  async confirmarPagamento(contratoId: string, paymentId: string, paidAt: string) {
+    return this.api.post(
+      `/contratos/${contratoId}/pagamentos/confirmacao`,
+      { paymentId, paidAt },
+      this.headers()
+    );
   }
 
   async atualizarStatus(contratoId: string, statusId: number) {
