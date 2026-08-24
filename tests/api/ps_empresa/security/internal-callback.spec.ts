@@ -2,66 +2,68 @@ import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { novaEmpresa } from '../helpers/ps_empresa.payload';
 
 test.describe('@security Internal Callback', () => {
+    const internalKey = process.env.PS_EMPRESA_INTERNAL_KEY;
 
-    test('deve bloquear sem header', async ({ request }) => {
+    test.beforeAll(() => {
+        if (!internalKey) {
+            throw new Error('PS_EMPRESA_INTERNAL_KEY deve ser configurada');
+        }
+    });
 
+    test('deve bloquear callback sem header', async ({ request }) => {
+        const internalApi = await playwrightRequest.newContext({
+            baseURL: process.env.PS_EMPRESA_URL ?? 'http://localhost:8081',
+            extraHTTPHeaders: {
+                'X-Internal-Key': internalKey!,
+                'Content-Type': 'application/json'
+            }
+        });
 
-        const createRes = await request.post('/empresas/createEmpresas', {
+        const createRes = await internalApi.post('/internal/empresas', {
             data: novaEmpresa()
+        });
+        expect(createRes.status()).toBe(201);
+        const empresa = await createRes.json();
+
+        const res = await request.patch('/internal/contratos/status', {
+            data: {
+                empresaId: empresa.id,
+                statusContrato: 'ATIVO'
+            }
+        });
+
+        expect(res.status()).toBe(403);
+        await internalApi.dispose();
     });
 
-    expect(createRes.status()).toBe(201);
+    test('deve atualizar com header válido', async () => {
+        const internalApi = await playwrightRequest.newContext({
+            baseURL: process.env.PS_EMPRESA_URL ?? 'http://localhost:8081',
+            extraHTTPHeaders: {
+                'X-Internal-Key': internalKey!,
+                'Content-Type': 'application/json'
+            }
+        });
 
-    const empresa = await createRes.json();
+        const createRes = await internalApi.post('/internal/empresas', {
+            data: novaEmpresa()
+        });
+        expect(createRes.status()).toBe(201);
+        const empresa = await createRes.json();
 
+        const res = await internalApi.patch('/internal/contratos/status', {
+            data: {
+                empresaId: empresa.id,
+                statusContrato: 'ATIVO'
+            }
+        });
+        expect(res.status()).toBe(204);
 
-    const res = await request.patch('/internal/contratos/status', {
-        data: {
-        empresaId: empresa.id,
-        statusContrato: 'ATIVO'
-        }
+        const getRes = await internalApi.get(`/empresas/${empresa.id}`);
+        expect(getRes.status()).toBe(200);
+        const empresaAtualizada = await getRes.json();
+        expect(empresaAtualizada.status).toBe('ATIVO');
+
+        await internalApi.dispose();
     });
-
-    expect(res.status()).toBe(403);
-    });
-
-
-    test('deve atualizar com header válido', async ({ request }) => {
-
-    const createRes = await request.post('/empresas/createEmpresas', {
-        data: novaEmpresa()
-    });
-
-    expect(createRes.status()).toBe(201);
-
-    const empresa = await createRes.json();
-
-
-    const internalApi = await playwrightRequest.newContext({
-        baseURL: process.env.PS_EMPRESA_URL ?? 'http://localhost:8081',
-        extraHTTPHeaders: {
-        'X-Internal-Key': 'mypetadmin-secret',
-        'Content-Type': 'application/json'
-        }
-    });
-
-    const res = await internalApi.patch('/internal/contratos/status', {
-        data: {
-        empresaId: empresa.id,
-        statusContrato: 'ATIVO'
-        }
-    });
-
-    expect(res.status()).toBe(200);
-
-
-    const getRes = await request.get(`/empresas/buscaEmpresas/${empresa.id}`);
-    expect(getRes.status()).toBe(200);
-
-    const empresaAtualizada = await getRes.json();
-    expect(empresaAtualizada.status).toBe('ATIVO');
-
-    await internalApi.dispose();
-    });
-
 });
