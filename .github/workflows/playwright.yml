@@ -33,6 +33,16 @@ jobs:
             exit 1
           fi
 
+      - name: Reject empty test placeholders
+        shell: bash
+        run: |
+          empty_specs=$(find tests -type f -name '*.spec.ts' -size 0 -print)
+          if [ -n "$empty_specs" ]; then
+            echo "Specs vazias encontradas:"
+            echo "$empty_specs"
+            exit 1
+          fi
+
       - name: Validate Playwright test discovery
         run: npx playwright test --list
 
