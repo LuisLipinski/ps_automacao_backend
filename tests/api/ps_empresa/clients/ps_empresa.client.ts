@@ -23,13 +23,13 @@ export class EmpresaClient {
         return this.api.get(`/empresas/${id}`, this.headers());
     }
 
-    async buscarTodasEmpresas() {
-        return this.api.get('/empresas?size=100', this.headers());
+    async buscarTodasEmpresas(query = 'page=0&size=100') {
+        return this.api.get(`/empresas?${query}`, this.headers());
     }
 
     async buscarEmpresasComFiltro(filtro: string, valor: string) {
         const encodedValue = encodeURIComponent(valor);
-        return this.api.get(`/empresas?${filtro}=${encodedValue}&size=100`, this.headers());
+        return this.api.get(`/empresas?${filtro}=${encodedValue}&page=0&size=100`, this.headers());
     }
 
     async editarEmpresa(id: string, payload: unknown) {
