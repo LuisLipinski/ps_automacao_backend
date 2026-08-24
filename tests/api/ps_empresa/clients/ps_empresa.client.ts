@@ -35,9 +35,10 @@ export class EmpresaClient {
     }
 
     async buscarEmpresasComFiltro(filtro: string, valor: string) {
-        const response = await this.api.get(`/empresas?${filtro}=${valor}&size=100`, this.headers());
+        const encodedValue = encodeURIComponent(valor);
+        const response = await this.api.get(`/empresas?${filtro}=${encodedValue}&size=100`, this.headers());
         if (this.shouldFallback(response.status())) {
-            return await this.api.get(`/empresas/buscaEmpresas?${filtro}=${valor}&size=1000`);
+            return await this.api.get(`/empresas/buscaEmpresas?${filtro}=${encodedValue}&size=1000`);
         }
         return response;
     }
