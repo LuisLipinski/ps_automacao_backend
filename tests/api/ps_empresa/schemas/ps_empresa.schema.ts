@@ -16,12 +16,12 @@ export const empresaSchema = {
     'status'
   ],
   properties: {
-    id: { type: 'string', format: 'uuid' },
+    id: { type: 'string' },
     documentNumber: { type: 'string' },
     razaoSocial: { type: 'string' },
     nomeFantasia: { type: 'string' },
     telefone: { type: 'string' },
-    email: { type: 'string', format: 'email' },
+    email: { type: 'string' },
     nomeTitular: { type: 'string' },
     cep: { type: 'string' },
     cidade: { type: 'string' },
