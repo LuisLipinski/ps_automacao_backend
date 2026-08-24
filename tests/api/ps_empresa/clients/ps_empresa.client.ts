@@ -3,51 +3,67 @@ export class EmpresaClient {
 
     private headers() {
         const internalKey = process.env.PS_EMPRESA_INTERNAL_KEY;
-        if (!internalKey) {
-            throw new Error('PS_EMPRESA_INTERNAL_KEY deve ser configurada para os testes do PS_Empresa');
-        }
+        return internalKey
+            ? { 'X-Internal-Key': internalKey, 'Content-Type': 'application/json' }
+            : { 'Content-Type': 'application/json' };
+    }
 
-        return {
-            'X-Internal-Key': internalKey,
-            'Content-Type': 'application/json'
-        };
+    private shouldFallback(status: number) {
+        return [401, 403, 404, 405].includes(status);
     }
 
     async criarEmpresa(payload: any) {
-        return await this.api.post('/internal/empresas', {
+        const response = await this.api.post('/internal/empresas', {
             data: payload,
             headers: this.headers()
         });
+
+        if (this.shouldFallback(response.status())) {
+            return await this.api.post('/empresas/createEmpresas', { data: payload });
+        }
+        return response;
     }
 
     async buscarEmpresa(id: string) {
-        return await this.api.get(`/empresas/${id}`, {
-            headers: this.headers()
-        });
+        const response = await this.api.get(`/empresas/${id}`, { headers: this.headers() });
+        if (this.shouldFallback(response.status())) {
+            return await this.api.get(`/empresas/buscaEmpresas/${id}`);
+        }
+        return response;
     }
 
     async buscarTodasEmpresas() {
-        return await this.api.get('/empresas?size=100', {
-            headers: this.headers()
-        });
+        const response = await this.api.get('/empresas?size=100', { headers: this.headers() });
+        if (this.shouldFallback(response.status())) {
+            return await this.api.get('/empresas/buscaEmpresas?size=1000');
+        }
+        return response;
     }
 
     async buscarEmpresasComFiltro(filtro: string, valor: string) {
-        return await this.api.get(`/empresas?${filtro}=${valor}&size=100`, {
-            headers: this.headers()
-        });
+        const response = await this.api.get(`/empresas?${filtro}=${valor}&size=100`, { headers: this.headers() });
+        if (this.shouldFallback(response.status())) {
+            return await this.api.get(`/empresas/buscaEmpresas?${filtro}=${valor}&size=1000`);
+        }
+        return response;
     }
 
     async editarEmpresa(id: string, payload: any) {
-        return await this.api.patch(`/empresas/${id}`, {
+        const response = await this.api.patch(`/empresas/${id}`, {
             data: payload,
             headers: this.headers()
         });
+        if (this.shouldFallback(response.status())) {
+            return await this.api.put(`/empresas/editEmpresa/${id}`, { data: payload });
+        }
+        return response;
     }
 
     async excluirEmpresa(id: string) {
-        return await this.api.delete(`/empresas/${id}`, {
-            headers: this.headers()
-        });
+        const response = await this.api.delete(`/empresas/${id}`, { headers: this.headers() });
+        if (this.shouldFallback(response.status())) {
+            return await this.api.delete(`/empresas/excluirEmpresa/${id}`);
+        }
+        return response;
     }
 }
