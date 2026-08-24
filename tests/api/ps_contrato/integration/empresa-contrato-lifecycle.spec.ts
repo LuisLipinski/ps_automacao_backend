@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { ApiClient } from '../../../shared/api.client';
 import { EmpresaClient } from '../../ps_empresa/clients/ps_empresa.client';
@@ -7,7 +8,7 @@ import { ContratoClient } from '../clients/ps_contrato.client';
 test.describe('@integration PS_Empresa <-> PS_Contrato', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test('deve sincronizar o ciclo AGUARDANDO_CONTRATO -> ATIVO -> INATIVO', async ({ request }) => {
+  test('deve sincronizar onboarding -> pagamento -> ativação -> inativação', async ({ request }) => {
     test.skip(
       process.env.RUN_DESTRUCTIVE_INTEGRATION !== 'true',
       'Teste de lifecycle exige ambiente efêmero/QA e RUN_DESTRUCTIVE_INTEGRATION=true'
@@ -31,24 +32,48 @@ test.describe('@integration PS_Empresa <-> PS_Contrato', () => {
       expect(statusEmpresa.status()).toBe(200);
       expect((await statusEmpresa.json()).status).toBe('AGUARDANDO_CONTRATO');
 
-      const contratoResponse = await contratoClient.criarContrato(empresaId);
+      const onboardingId = randomUUID();
+      const contratoResponse = await contratoClient.criarContrato(empresaId, onboardingId);
       expect(contratoResponse.status()).toBe(201);
       const contrato = await contratoResponse.json();
       expect(contrato.statusName).toBe('Aguardando pagamento');
 
+      const retryOnboarding = await contratoClient.criarContrato(empresaId, onboardingId);
+      expect(retryOnboarding.status()).toBe(201);
+      const contratoRetry = await retryOnboarding.json();
+      expect(contratoRetry.id).toBe(contrato.id);
+      expect(contratoRetry.numeroContrato).toBe(contrato.numeroContrato);
+
+      const contratosDaEmpresa = await contratoClient.buscarContratos(`empresaId=${empresaId}`);
+      expect(contratosDaEmpresa.status()).toBe(200);
+      const paginaContratos = await contratosDaEmpresa.json();
+      expect(paginaContratos.totalElements).toBe(1);
+
       statusEmpresa = await empresaClient.consultarStatus(empresaId);
       expect((await statusEmpresa.json()).status).toBe('AGUARDANDO_CONTRATO');
 
-      const ativacao = await contratoClient.atualizarStatus(contrato.id, 2);
+      const ativacaoAdministrativa = await contratoClient.atualizarStatus(contrato.id, 2);
+      expect(ativacaoAdministrativa.status()).toBe(409);
+
+      const paymentId = randomUUID();
+      const paidAt = new Date().toISOString().replace('Z', '');
+      const ativacao = await contratoClient.confirmarPagamento(contrato.id, paymentId, paidAt);
       expect(ativacao.status()).toBe(200);
       expect((await ativacao.json()).statusName).toBe('Ativo');
 
       statusEmpresa = await empresaClient.consultarStatus(empresaId);
       expect((await statusEmpresa.json()).status).toBe('ATIVO');
 
-      const retryAtivacao = await contratoClient.atualizarStatus(contrato.id, 2);
-      expect(retryAtivacao.status()).toBe(200);
-      expect((await retryAtivacao.json()).statusName).toBe('Ativo');
+      const retryPagamento = await contratoClient.confirmarPagamento(contrato.id, paymentId, paidAt);
+      expect(retryPagamento.status()).toBe(200);
+      expect((await retryPagamento.json()).statusName).toBe('Ativo');
+
+      const pagamentoDiferente = await contratoClient.confirmarPagamento(
+        contrato.id,
+        randomUUID(),
+        paidAt
+      );
+      expect(pagamentoDiferente.status()).toBe(409);
 
       const inativacao = await contratoClient.atualizarStatus(contrato.id, 3);
       expect(inativacao.status()).toBe(200);
@@ -56,6 +81,14 @@ test.describe('@integration PS_Empresa <-> PS_Contrato', () => {
 
       statusEmpresa = await empresaClient.consultarStatus(empresaId);
       expect((await statusEmpresa.json()).status).toBe('INATIVO');
+
+      const retryPagamentoAposInativacao = await contratoClient.confirmarPagamento(
+        contrato.id,
+        paymentId,
+        paidAt
+      );
+      expect(retryPagamentoAposInativacao.status()).toBe(200);
+      expect((await retryPagamentoAposInativacao.json()).statusName).toBe('Inativo');
     } finally {
       if (empresaId) {
         await empresaClient.excluirEmpresa(empresaId);
