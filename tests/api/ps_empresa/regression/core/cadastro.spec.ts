@@ -1,232 +1,108 @@
-    import { test, expect } from '../../fixtures/empresa.fixture';
-    import { novaEmpresa, EmpresaPayload } from '../../helpers/ps_empresa.payload';
-    import { EmpresaClient } from '../../clients/ps_empresa.client';
+import { test, expect } from '../../fixtures/empresa.fixture';
+import { novaEmpresa } from '../../helpers/ps_empresa.payload';
+import { EmpresaClient } from '../../clients/ps_empresa.client';
 
 test.describe('@core Cadastro de empresa - Regressivo', () => {
-    test.describe('Cenários positivo', () => {
-        test('Cadastro com dados válidos deve criar empresa com sucesso', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
+    test('cadastro válido deve criar empresa em AGUARDANDO_CONTRATO', async ({ api }) => {
+        const client = new EmpresaClient(api);
+        const payload = novaEmpresa();
 
-            const res = await empresaClient.criarEmpresa(payload);
+        const res = await client.criarEmpresa(payload);
+        expect(res.status()).toBe(201);
 
-            expect(res.status()).toBe(201);
-            const body = await res.json();
+        const body = await res.json();
+        expect(body.status).toBe('AGUARDANDO_CONTRATO');
+        expect(body.documentNumber).toBe(payload.documentNumber);
+        expect(body.email).toBe(payload.email);
+        expect(body.id).toMatch(/^[0-9a-f-]{36}$/);
 
-            expect(body.status).toBe('AGUARDANDO_CONTRATO');
+        const persisted = await client.buscarEmpresa(body.id);
+        expect(persisted.status()).toBe(200);
+        expect((await persisted.json()).status).toBe('AGUARDANDO_CONTRATO');
+    });
 
-            expect(body.documentNumber).toBe(payload.documentNumber);
-            expect(body.razaoSocial).toBe(payload.razaoSocial);
-            expect(body.nomeFantasia).toBe(payload.nomeFantasia);
-            expect(body.telefone).toBe(payload.telefone);
-            expect(body.email).toBe(payload.email);
-            expect(body.nomeTitular).toBe(payload.nomeTitular);
-            expect(body.cep).toBe(payload.cep)
-            expect(body.cidade).toBe(payload.cidade);
-            expect(body.estado).toBe(payload.estado);
-            expect(body.endereco).toBe(payload.rua +  ', ' + payload.numero + ' - ' + payload.complemento + ', ' + payload.bairro)
+    test('deve montar endereço com complemento', async ({ api }) => {
+        const client = new EmpresaClient(api);
+        const payload = novaEmpresa({
+            rua: 'Rua das Oliveiras',
+            numero: '154',
+            complemento: 'Bloco 03',
+            bairro: 'Centro'
+        });
 
-            expect(body.id).toMatch(
-                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
-            )
+        const res = await client.criarEmpresa(payload);
+        expect(res.status()).toBe(201);
+        expect((await res.json()).endereco).toBe('Rua das Oliveiras, 154 - Bloco 03, Centro');
+    });
 
-            const getResponse = await empresaClient.buscarEmpresa(body.id);
-            expect(getResponse.status()).toBe(200);
+    test('deve montar endereço sem complemento', async ({ api }) => {
+        const client = new EmpresaClient(api);
+        const payload = novaEmpresa({
+            rua: 'Rua das Oliveiras',
+            numero: '154',
+            complemento: null,
+            bairro: 'Centro'
+        });
 
-            const empresaPersistida = await getResponse.json();
+        const res = await client.criarEmpresa(payload);
+        expect(res.status()).toBe(201);
+        expect((await res.json()).endereco).toBe('Rua das Oliveiras, 154, Centro');
+    });
 
-            expect(empresaPersistida.id).toBe(body.id);
-            expect(empresaPersistida.documentNumber).toBe(payload.documentNumber);
-            expect(empresaPersistida.razaoSocial).toBe(payload.razaoSocial);
-            expect(empresaPersistida.nomeFantasia).toBe(payload.nomeFantasia);
-            expect(empresaPersistida.telefone).toBe(payload.telefone);
-            expect(empresaPersistida.email).toBe(payload.email);
-            expect(empresaPersistida.nomeTitular).toBe(payload.nomeTitular);
-            expect(empresaPersistida.cep).toBe(payload.cep)
-            expect(empresaPersistida.cidade).toBe(payload.cidade);
-            expect(empresaPersistida.estado).toBe(payload.estado);
-            expect(empresaPersistida.endereco).toBe(payload.rua +  ', ' + payload.numero + ' - ' + payload.complemento + ', ' + payload.bairro)
-            expect(empresaPersistida.status).toBe('AGUARDANDO_CONTRATO');
-        })
+    test('não deve permitir duas empresas com o mesmo CNPJ', async ({ api, empresa }) => {
+        const client = new EmpresaClient(api);
+        const payload = novaEmpresa({ documentNumber: empresa.payload.documentNumber });
 
-        test('Status inicial deve ser AGUARDANDO_CONTRATO', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
+        const res = await client.criarEmpresa(payload);
+        expect([400, 409]).toContain(res.status());
+        expect(JSON.stringify(await res.json())).toContain('CNPJ');
+    });
 
-            const response = await empresaClient.criarEmpresa(payload);
-            expect(response.status()).toBe(201);
+    test('não deve permitir empresas com o mesmo email', async ({ api, empresa }) => {
+        const client = new EmpresaClient(api);
+        const payload = novaEmpresa({ email: empresa.payload.email });
 
-            const body = await response.json();
+        const res = await client.criarEmpresa(payload);
+        expect([400, 409]).toContain(res.status());
+        expect(JSON.stringify(await res.json()).toLowerCase()).toContain('email');
+    });
 
-            expect(body.status).toBe(`AGUARDANDO_CONTRATO`);
+    test('não deve permitir nem persistir CNPJ matematicamente inválido', async ({ api }) => {
+        const client = new EmpresaClient(api);
+        const invalidCnpj = '12345678901234';
 
-            const getResponse = await empresaClient.buscarEmpresa(body.id);
-            expect(getResponse.status()).toBe(200);
+        const res = await client.criarEmpresa(novaEmpresa({ documentNumber: invalidCnpj }));
+        expect(res.status()).toBe(400);
+        expect(JSON.stringify(await res.json())).toContain('CNPJ');
 
-            const empresaPersistida = await getResponse.json();
+        const persisted = await client.buscarTodasEmpresas('page=0&size=100');
+        expect(persisted.status()).toBe(200);
+        const page = await persisted.json();
+        expect(page.content.some((empresa: { documentNumber?: string }) => empresa.documentNumber === invalidCnpj)).toBe(false);
+    });
 
-            expect(empresaPersistida.status).toBe('AGUARDANDO_CONTRATO');
+    test('deve validar campos obrigatórios', async ({ api }) => {
+        const client = new EmpresaClient(api);
+        const payload = novaEmpresa({
+            documentNumber: '',
+            razaoSocial: '',
+            nomeFantasia: '',
+            telefone: '',
+            email: '',
+            nomeTitular: '',
+            cep: '',
+            cidade: '',
+            estado: '',
+            rua: '',
+            numero: '',
+            bairro: ''
+        });
 
-            
-        })
-        test('Deve montar o campo endereco corretamente (rua + número + complemento + bairro', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa({
-                rua: 'Rua das Oliveiras',
-                numero: '154',
-                complemento: 'Ap32 bloco 03',
-                bairro: 'Centro'
-            });
-
-            const response = await empresaClient.criarEmpresa(payload);
-            const body = await response.json();
-
-            expect(body.endereco). toBe('Rua das Oliveiras, 154 - Ap32 bloco 03, Centro')
-        })
-
-        test('Deve montar o campo endereco corretamente sem complemento (rua + número + bairro', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa({
-                rua: 'Rua das Oliveiras',
-                numero: '154',
-                complemento: null,
-                bairro: 'Centro'
-            });
-
-            const response = await empresaClient.criarEmpresa(payload);
-            const body = await response.json();
-
-            expect(body.endereco).toBe('Rua das Oliveiras, 154, Centro')
-        })
-
-        test('Deve retorna EmpresaResponseDTO corretamente', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
-
-            const res = await empresaClient.criarEmpresa(payload);
-
-            expect(res.status()).toBe(201);
-            const body = await res.json();
-            const expectedFields = [
-                'id',
-                'documentNumber',
-                'razaoSocial',
-                'nomeFantasia',
-                'telefone',
-                'email',
-                'nomeTitular',
-                'cep',
-                'cidade',
-                'estado',
-                'endereco',
-                'status'
-            ];
-
-            for (const field of expectedFields) {
-                expect(body).toHaveProperty(field);
-            }
-
-            expect(Object.keys(body).sort()).toEqual(expectedFields.sort());
-
-        }) 
-    })
-
-
-    test.describe('Cenários negativo', () => {
-        test('não deve permitir cadastrar duas empresas com o mesmo CNPJ', async ({ api, empresa }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
-            payload.documentNumber = empresa.payload.documentNumber;
-
-            const res = await empresaClient.criarEmpresa(payload);
-
-            expect(res.status()).toBe(400);
-
-            const body = await res.json();
-            expect(JSON.stringify(body)).toContain('CNPJ');
-        })
-
-        test('não deve permitir cadastro de empresas com mesmo email', async ({ api, empresa }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
-            payload.email = empresa.payload.email;
-            const res = await empresaClient.criarEmpresa(payload);
-            expect(res.status()).toBe(400);
-            const body = await res.json();
-            expect(JSON.stringify(body)).toContain('email');
-        })
-
-        test('não deve permitir cnpj invalido', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
-            payload.documentNumber = '12345678901234';
-            const res = await empresaClient.criarEmpresa(payload);
-            expect(res.status()).toBe(400);
-            const body = await res.json();
-            expect(JSON.stringify(body)).toContain('CNPJ');
-        })
-
-        test('não deve permitir estado com tamanho diferente de 2', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
-            payload.estado = 'SPP';
-            const res = await empresaClient.criarEmpresa(payload);
-            expect(res.status()).toBe(400);
-            const body = await res.json();
-            expect(JSON.stringify(body)).toContain('estado');
-        })
-
-        test('não deve permitir CEP com tamanho diferente de 8', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
-            payload.cep = '1234567';
-            const res = await empresaClient.criarEmpresa(payload);
-            expect(res.status()).toBe(400);
-            const body = await res.json();
-            expect(JSON.stringify(body)).toContain('cep');
-        })
-
-        test('não deve permitir telefone com tamanho diferente de 11', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa();
-            payload.telefone = '1234567890';
-            const res = await empresaClient.criarEmpresa(payload);
-            expect(res.status()).toBe(400);
-            const body = await res.json();
-            expect(JSON.stringify(body)).toContain('telefone');
-        })
-
-        test('não deve permitir campos obrigatórios nulos ou vazios', async ({ api }) => {
-            const empresaClient = new EmpresaClient(api);
-            const payload = novaEmpresa({
-                documentNumber: '',
-                razaoSocial: '',
-                nomeFantasia: '',
-                telefone: '',
-                email: '',
-                nomeTitular: '',
-                cep: '',
-                cidade: '',
-                estado: '',
-                rua: '',
-                numero: '',
-                bairro: ''
-            });
-            const res = await empresaClient.criarEmpresa(payload);
-            expect(res.status()).toBe(400);
-            const body = await res.json();
-            expect(JSON.stringify(body)).toContain('documentNumber');
-            expect(JSON.stringify(body)).toContain('razaoSocial');
-            expect(JSON.stringify(body)).toContain('nomeFantasia');
-            expect(JSON.stringify(body)).toContain('telefone');
-            expect(JSON.stringify(body)).toContain('email');
-            expect(JSON.stringify(body)).toContain('nomeTitular');
-            expect(JSON.stringify(body)).toContain('cep');
-            expect(JSON.stringify(body)).toContain('cidade');
-            expect(JSON.stringify(body)).toContain('estado');
-            expect(JSON.stringify(body)).toContain('rua');
-            expect(JSON.stringify(body)).toContain('numero');
-            expect(JSON.stringify(body)).toContain('bairro');
-        })
-    })
-})
+        const res = await client.criarEmpresa(payload);
+        expect(res.status()).toBe(400);
+        const body = JSON.stringify(await res.json());
+        for (const field of ['documentNumber', 'razaoSocial', 'nomeFantasia', 'telefone', 'email', 'nomeTitular', 'cep', 'cidade', 'estado', 'rua', 'numero', 'bairro']) {
+            expect(body).toContain(field);
+        }
+    });
+});

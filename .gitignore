@@ -1,8 +1,23 @@
+# Secrets / local environment
+.env
+.env.*
+!.env.example
 
-# Playwright
+# OS / editor metadata
+.DS_Store
+**/.DS_Store
+.vscode/
+
+# Playwright / Node
 node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

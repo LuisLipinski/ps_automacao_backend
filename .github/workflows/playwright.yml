@@ -1,50 +1,90 @@
-name: API Smoke Tests
+name: My Pet Admin Automation
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  smoke-tests:
+  automation-quality:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout do código
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
 
-      - name: Instalar dependências
+      - name: Install dependencies
         run: npm ci
 
-      - name: Instalar Playwright
-        run: npx playwright install
+      - name: Reject tracked environment secret files
+        shell: bash
+        run: |
+          tracked_env=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v -E '(^|/)\.env\.example$' || true)
+          if [ -n "$tracked_env" ]; then
+            echo "Arquivos de ambiente versionados indevidamente:"
+            echo "$tracked_env"
+            exit 1
+          fi
 
-      - name: Rodar Smoke Tests e segurança do PS_Empresa
-        env:
-          PS_EMPRESA_URL: https://ps-empresa.onrender.com
-        run: npm run empresa:smoke-security:render
+      - name: Reject empty test placeholders
+        shell: bash
+        run: |
+          empty_specs=$(find tests -type f -name '*.spec.ts' -size 0 -print)
+          if [ -n "$empty_specs" ]; then
+            echo "Specs vazias encontradas:"
+            echo "$empty_specs"
+            exit 1
+          fi
 
-      - name: Salvar relatório HTML
+      - name: Validate Playwright test discovery
+        run: npx playwright test --list
+
+  live-api-smoke:
+    if: github.event_name == 'workflow_dispatch'
+    needs: automation-quality
+    runs-on: ubuntu-latest
+    env:
+      PS_EMPRESA_URL: ${{ vars.PS_EMPRESA_URL }}
+      PS_CONTRATO_URL: ${{ vars.PS_CONTRATO_URL }}
+      PS_EMPRESA_INTERNAL_KEY: ${{ secrets.PS_EMPRESA_INTERNAL_KEY }}
+      PS_CONTRATO_INTERNAL_KEY: ${{ secrets.PS_CONTRATO_INTERNAL_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate required variables and secrets
+        shell: bash
+        run: |
+          test -n "$PS_EMPRESA_URL" || { echo "Repository variable PS_EMPRESA_URL ausente"; exit 1; }
+          test -n "$PS_CONTRATO_URL" || { echo "Repository variable PS_CONTRATO_URL ausente"; exit 1; }
+          test -n "$PS_EMPRESA_INTERNAL_KEY" || { echo "Secret PS_EMPRESA_INTERNAL_KEY ausente"; exit 1; }
+          test -n "$PS_CONTRATO_INTERNAL_KEY" || { echo "Secret PS_CONTRATO_INTERNAL_KEY ausente"; exit 1; }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run backend smoke and security suites
+        run: |
+          npm run backend:smoke
+          npm run backend:security
+
+      - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-smoke-security-ps_empresa
+          name: playwright-api-report
           path: playwright-report
-
-      - name: Rodar Teste regressivo do PS_Empresa
-        env:
-          PS_EMPRESA_URL: https://ps-empresa.onrender.com
-        run: npm run empresa:regression:render
-
-      - name: Salvar relatório HTML
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-regression-ps_empresa
-          path: playwright-report
+          if-no-files-found: ignore
