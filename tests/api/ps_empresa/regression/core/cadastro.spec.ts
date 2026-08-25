@@ -67,11 +67,18 @@ test.describe('@core Cadastro de empresa - Regressivo', () => {
         expect(JSON.stringify(await res.json()).toLowerCase()).toContain('email');
     });
 
-    test('não deve permitir CNPJ inválido', async ({ api }) => {
+    test('não deve permitir nem persistir CNPJ matematicamente inválido', async ({ api }) => {
         const client = new EmpresaClient(api);
-        const res = await client.criarEmpresa(novaEmpresa({ documentNumber: '12345678901234' }));
+        const invalidCnpj = '12345678901234';
+
+        const res = await client.criarEmpresa(novaEmpresa({ documentNumber: invalidCnpj }));
         expect(res.status()).toBe(400);
         expect(JSON.stringify(await res.json())).toContain('CNPJ');
+
+        const persisted = await client.buscarTodasEmpresas('page=0&size=100');
+        expect(persisted.status()).toBe(200);
+        const page = await persisted.json();
+        expect(page.content.some((empresa: { documentNumber?: string }) => empresa.documentNumber === invalidCnpj)).toBe(false);
     });
 
     test('deve validar campos obrigatórios', async ({ api }) => {
