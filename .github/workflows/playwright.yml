@@ -70,6 +70,43 @@ jobs:
         run: |
           test -n "$PS_EMPRESA_INTERNAL_KEY" || { echo "Secret INTERNAL_API_KEY ausente"; exit 1; }
 
+      - name: Wake Render services
+        shell: bash
+        run: |
+          wake_service() {
+            local name="$1"
+            local base_url="$2"
+            local max_attempts=24
+
+            for attempt in $(seq 1 "$max_attempts"); do
+              if curl -fsS --connect-timeout 5 --max-time 15 "$base_url/actuator/health" > "/tmp/${name}-health.json"; then
+                echo "$name disponível"
+                cat "/tmp/${name}-health.json"
+                return 0
+              fi
+
+              echo "$name ainda indisponível (tentativa $attempt/$max_attempts)"
+              sleep 5
+            done
+
+            echo "$name não ficou disponível dentro da janela de aquecimento"
+            return 1
+          }
+
+          wake_service "ps-empresa" "$PS_EMPRESA_URL" &
+          empresa_pid=$!
+          wake_service "ps-contrato" "$PS_CONTRATO_URL" &
+          contrato_pid=$!
+
+          empresa_rc=0
+          contrato_rc=0
+          wait "$empresa_pid" || empresa_rc=$?
+          wait "$contrato_pid" || contrato_rc=$?
+
+          if [ "$empresa_rc" -ne 0 ] || [ "$contrato_rc" -ne 0 ]; then
+            exit 1
+          fi
+
       - name: Install dependencies
         run: npm ci
 
