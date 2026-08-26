@@ -21,7 +21,10 @@ test.describe('@smoke PS_Contrato - Smoke não destrutivo', () => {
 
   test('empresa inexistente deve retornar 404 sem criar contrato', async ({ request }) => {
     const client = new ContratoClient(new ApiClient(request));
-    const response = await client.criarContrato('00000000-0000-0000-0000-000000000001');
+    const response = await client.criarContrato(
+      '00000000-0000-0000-0000-000000000001',
+      '00000000-0000-0000-0000-000000000002'
+    );
 
     expect(response.status()).toBe(404);
     const body = await response.json();
