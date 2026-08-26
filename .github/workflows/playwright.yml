@@ -51,10 +51,10 @@ jobs:
     needs: automation-quality
     runs-on: ubuntu-latest
     env:
-      PS_EMPRESA_URL: ${{ vars.PS_EMPRESA_URL }}
-      PS_CONTRATO_URL: ${{ vars.PS_CONTRATO_URL }}
-      PS_EMPRESA_INTERNAL_KEY: ${{ secrets.PS_EMPRESA_INTERNAL_KEY }}
-      PS_CONTRATO_INTERNAL_KEY: ${{ secrets.PS_CONTRATO_INTERNAL_KEY }}
+      PS_EMPRESA_URL: https://ps-empresa.onrender.com
+      PS_CONTRATO_URL: https://ps-contrato.onrender.com
+      PS_EMPRESA_INTERNAL_KEY: ${{ secrets.INTERNAL_API_KEY }}
+      PS_CONTRATO_INTERNAL_KEY: ${{ secrets.INTERNAL_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,13 +65,10 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Validate required variables and secrets
+      - name: Validate internal API key
         shell: bash
         run: |
-          test -n "$PS_EMPRESA_URL" || { echo "Repository variable PS_EMPRESA_URL ausente"; exit 1; }
-          test -n "$PS_CONTRATO_URL" || { echo "Repository variable PS_CONTRATO_URL ausente"; exit 1; }
-          test -n "$PS_EMPRESA_INTERNAL_KEY" || { echo "Secret PS_EMPRESA_INTERNAL_KEY ausente"; exit 1; }
-          test -n "$PS_CONTRATO_INTERNAL_KEY" || { echo "Secret PS_CONTRATO_INTERNAL_KEY ausente"; exit 1; }
+          test -n "$PS_EMPRESA_INTERNAL_KEY" || { echo "Secret INTERNAL_API_KEY ausente"; exit 1; }
 
       - name: Install dependencies
         run: npm ci
