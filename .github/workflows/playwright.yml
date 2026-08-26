@@ -81,6 +81,11 @@ jobs:
           npm run backend:smoke
           npm run backend:security
 
+      - name: Run destructive Empresa-Contrato lifecycle
+        env:
+          RUN_DESTRUCTIVE_INTEGRATION: 'true'
+        run: npx playwright test tests/api/ps_contrato/integration/empresa-contrato-lifecycle.spec.ts --project=ps_contrato
+
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
