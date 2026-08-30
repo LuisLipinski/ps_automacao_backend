@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIRequestContext } from '@playwright/test';
 
 type JwtClaims = {
   sub?: string;
@@ -30,7 +30,7 @@ function decodeJwtPayload(token: string): JwtClaims {
   return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
 }
 
-async function login(request: Parameters<typeof test>[0] extends never ? never : any) {
+async function login(request: APIRequestContext) {
   const loginUrl = process.env.PS_LOGIN_URL;
   const email = process.env.QA_LOGIN_EMAIL;
   const password = process.env.QA_LOGIN_PASSWORD;
