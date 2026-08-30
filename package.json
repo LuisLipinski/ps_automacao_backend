@@ -16,6 +16,7 @@
     "contrato:security": "playwright test --project=ps_contrato --grep @security",
     "contrato:integration": "playwright test --project=ps_contrato --grep @integration",
     "user": "playwright test --project=ps_user",
+    "user:integration": "playwright test tests/api/ps_user/integration --project=ps_user",
     "login": "playwright test --project=ps_login",
     "orchestrator": "playwright test --project=ps_orchestrator",
     "gateway": "playwright test --project=ps_gateway",
